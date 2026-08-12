@@ -1,0 +1,67 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html, body, #root {
+    height: 100%;
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    color: #1f2937;
+    background: #fafafa;
+  }
+  code, pre {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, 'Cascadia Mono', monospace;
+    font-size: 0.85em;
+  }
+}
+
+/* Custom thin scrollbar (matches Docent) */
+.custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #d1d5db; border-radius: 3px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+
+/* Highlight-flash animation when jumping to a block from the minimap */
+@keyframes flash-highlight {
+  0%   { background-color: rgba(59, 130, 246, 0.25); }
+  100% { background-color: transparent; }
+}
+.flash-highlight { animation: flash-highlight 1.2s ease-out; }
+
+/* Markdown prose overrides — compact, readable */
+.md-body { line-height: 1.55; }
+.md-body p { margin: 0.35em 0; }
+.md-body ul, .md-body ol { padding-left: 1.4em; margin: 0.35em 0; }
+.md-body ul { list-style: disc; }
+.md-body ol { list-style: decimal; }
+.md-body h1, .md-body h2, .md-body h3 {
+  font-weight: 600; margin: 0.6em 0 0.3em;
+}
+.md-body h1 { font-size: 1.15em; }
+.md-body h2 { font-size: 1.05em; }
+.md-body h3 { font-size: 1em; }
+.md-body code:not(pre code) {
+  background: rgba(0,0,0,0.06); padding: 1px 4px; border-radius: 3px;
+}
+.md-body pre {
+  background: #0f172a; color: #e2e8f0; padding: 10px 12px;
+  border-radius: 6px; overflow-x: auto; margin: 0.5em 0;
+}
+.md-body pre code { background: transparent; padding: 0; color: inherit; }
+.md-body a { color: #2563eb; text-decoration: underline; }
+.md-body blockquote {
+  border-left: 3px solid #d1d5db; padding-left: 10px; color: #4b5563;
+  margin: 0.4em 0;
+}
+.md-body table {
+  border-collapse: collapse; margin: 0.5em 0;
+}
+.md-body th, .md-body td {
+  border: 1px solid #e5e7eb; padding: 4px 8px;
+}
+.md-body th { background: #f3f4f6; }
