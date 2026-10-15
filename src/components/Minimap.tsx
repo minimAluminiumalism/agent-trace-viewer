@@ -60,11 +60,12 @@ export function Minimap({ messages, activeIdx, onJump }: Props) {
           return (
             <button
               key={m.blockIdx}
-              title={`Block ${m.blockIdx} — ${m.role}${isReasoning ? ' (reasoning)' : ''}${m.toolCalls?.length ? ' (tool_call)' : ''}`}
+              title={`Block ${m.blockIdx} — ${m.role}${isReasoning ? ' (reasoning)' : ''}${m.toolCalls?.length ? ' (tool_call)' : ''}${m.images?.length ? ` (image x${m.images.length})` : ''}`}
               onClick={() => onJump(m.blockIdx)}
               className={clsx(
                 'h-5 w-5 rounded-sm transition-all cursor-pointer',
                 base,
+                m.images?.length && 'outline outline-2 outline-pink-400 outline-offset-1',
                 isActive
                   ? 'ring-2 ring-gray-900 ring-offset-1 scale-110'
                   : 'hover:scale-110 hover:ring-1 hover:ring-gray-500'

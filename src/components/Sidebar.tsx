@@ -25,6 +25,7 @@ export function Sidebar({ doc, onReset }: Props) {
     'anthropic-messages': { text: 'Anthropic Messages API', cls: 'bg-amber-100 text-amber-800 border-amber-300' },
     'mini-swe-agent': { text: 'mini-swe-agent', cls: 'bg-purple-100 text-purple-800 border-purple-300' },
     opencode: { text: 'opencode', cls: 'bg-emerald-100 text-emerald-800 border-emerald-300' },
+    devin: { text: 'Devin CLI', cls: 'bg-indigo-100 text-indigo-800 border-indigo-300' },
     generic: { text: 'Generic', cls: 'bg-gray-100 text-gray-800 border-gray-300' },
   }[doc.source];
 

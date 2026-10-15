@@ -5,6 +5,8 @@ import { MessageBlock } from './MessageBlock';
 
 interface Props {
   doc: TranscriptDoc;
+  /** Basename → objectURL for user-supplied image files. */
+  imageUrls?: Map<string, string>;
 }
 
 /**
@@ -12,7 +14,7 @@ interface Props {
  * The "active" block is the one with the largest visible area — same
  * heuristic Docent uses in AgentRunViewer.tsx.
  */
-export function TranscriptView({ doc }: Props) {
+export function TranscriptView({ doc, imageUrls }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [activeIdx, setActiveIdx] = useState<number | null>(null);
   const [highlighted, setHighlighted] = useState<number | null>(null);
@@ -94,6 +96,7 @@ export function TranscriptView({ doc }: Props) {
               key={m.blockIdx}
               message={m}
               highlighted={highlighted === m.blockIdx}
+              imageUrls={imageUrls}
             />
           ))}
         </div>

@@ -4,31 +4,45 @@ import type { TranscriptDoc } from '../types';
 import { parseFile } from '../parsers/detect';
 
 interface Props {
-  onLoaded: (doc: TranscriptDoc) => void;
+  onLoaded: (doc: TranscriptDoc, images: Map<string, string>) => void;
   onError: (msg: string) => void;
+}
+
+/** Basename → objectURL map for images dropped alongside the transcript. */
+function buildImageMap(files: File[], exclude: File): Map<string, string> {
+  const map = new Map<string, string>();
+  for (const f of files) {
+    if (f === exclude) continue;
+    if (!f.type.startsWith('image/')) continue;
+    map.set(f.name, URL.createObjectURL(f));
+  }
+  return map;
 }
 
 export function FileUpload({ onLoaded, onError }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
 
-  async function handleFile(file: File) {
+  async function handleFiles(files: File[]) {
+    const transcript =
+      files.find((f) => /\.(jsonl?|ndjson|txt)$/i.test(f.name)) ?? files[0];
+    if (!transcript) return;
     try {
-      const text = await file.text();
-      const doc = parseFile(text, file.name);
+      const text = await transcript.text();
+      const doc = parseFile(text, transcript.name);
       if (doc.messages.length === 0) {
-        onError(`No messages found in ${file.name}. Is this a supported format?`);
+        onError(`No messages found in ${transcript.name}. Is this a supported format?`);
         return;
       }
-      onLoaded(doc);
+      onLoaded(doc, buildImageMap(files, transcript));
     } catch (e) {
-      onError(`Failed to parse ${file.name}: ${e instanceof Error ? e.message : String(e)}`);
+      onError(`Failed to parse ${transcript.name}: ${e instanceof Error ? e.message : String(e)}`);
     }
   }
 
   function onDrop(e: React.DragEvent) {
     e.preventDefault();
     const files = Array.from(e.dataTransfer.files);
-    if (files.length > 0) void handleFile(files[0]);
+    if (files.length > 0) void handleFiles(files);
   }
 
   return (
@@ -40,7 +54,7 @@ export function FileUpload({ onLoaded, onError }: Props) {
             Drop an agent session file below — supports{' '}
             <code className="bg-gray-200 px-1.5 py-0.5 rounded text-sm">.jsonl</code> (Codex CLI, Claude Code, opencode export) and{' '}
             <code className="bg-gray-200 px-1.5 py-0.5 rounded text-sm">.json</code>{' '}
-            (mini-swe-agent traj, OpenAI Responses / Anthropic Messages gateway bodies).
+            (mini-swe-agent traj, Devin CLI transcripts, OpenAI Responses / Anthropic Messages gateway bodies).
           </p>
         </div>
 
@@ -57,15 +71,17 @@ export function FileUpload({ onLoaded, onError }: Props) {
           </p>
           <p className="text-sm text-gray-500">
             All parsing happens locally in your browser &mdash; nothing leaves the page.
+            Drop the transcript together with its image files to resolve embedded screenshots.
           </p>
           <input
             ref={inputRef}
             type="file"
-            accept=".jsonl,.json,application/x-ndjson,application/json,text/plain"
+            multiple
+            accept=".jsonl,.json,application/x-ndjson,application/json,text/plain,image/*"
             className="hidden"
             onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) void handleFile(f);
+              const files = Array.from(e.target.files ?? []);
+              if (files.length > 0) void handleFiles(files);
             }}
           />
         </div>
@@ -132,6 +148,15 @@ export function FileUpload({ onLoaded, onError }: Props) {
             </div>
             <code className="block text-xs text-gray-600 break-all">
               POST /v1/chat/completions
+            </code>
+          </div>
+          <div className="bg-white rounded-lg border border-gray-200 p-4">
+            <div className="flex items-center gap-2 font-medium text-gray-800 mb-2">
+              <FileText className="w-4 h-4 text-indigo-500" />
+              Devin CLI
+            </div>
+            <code className="block text-xs text-gray-600 break-all">
+              ~/.local/share/devin/cli/transcripts/*.json
             </code>
           </div>
         </div>

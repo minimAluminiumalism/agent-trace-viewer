@@ -14,6 +14,18 @@ export interface ToolCall {
   argumentsParsed?: unknown;
 }
 
+export interface TraceImage {
+  /** Original media type, e.g. image/png. */
+  mediaType?: string;
+  /**
+   * Local file path recorded in the trace. Not loadable directly from the
+   * browser — resolved against user-dropped files by basename.
+   */
+  path?: string;
+  /** Inline data URL or remote URL, when the source embeds the bytes. */
+  url?: string;
+}
+
 export interface UnifiedMessage {
   /** Stable per-transcript index (0-based, monotonically increasing over the block sequence). */
   blockIdx: number;
@@ -30,6 +42,8 @@ export interface UnifiedMessage {
   toolName?: string;
   /** True if this represents an error (rendered as red block). */
   isError?: boolean;
+  /** Inline images attached to the message (screenshots, pastes). */
+  images?: TraceImage[];
   /** Per-message metadata (rendered in a popover). */
   metadata?: Record<string, unknown>;
   timestamp?: string;
@@ -41,7 +55,7 @@ export interface TranscriptDoc {
   /** File name it was parsed from. */
   filename: string;
   /** Original source format tag. */
-  source: 'codex' | 'claude-code' | 'openai-chat' | 'openai-responses' | 'anthropic-messages' | 'mini-swe-agent' | 'opencode' | 'generic';
+  source: 'codex' | 'claude-code' | 'openai-chat' | 'openai-responses' | 'anthropic-messages' | 'mini-swe-agent' | 'opencode' | 'devin' | 'generic';
   /** Session-level metadata (cwd, model, cli version, etc.). */
   meta: Record<string, unknown>;
   /** Ordered block list (post-normalization / de-dup). */
