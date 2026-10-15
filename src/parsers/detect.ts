@@ -13,6 +13,7 @@ import { isOpencodeExport, parseOpencode } from './opencode';
 import { isOpenAIResponses, parseOpenAIResponses } from './openai-responses';
 import { isAnthropicMessages, parseAnthropicMessages } from './anthropic-messages';
 import { isOpenAIChatCompletions, parseOpenAIChatCompletions } from './openai-chat-completions';
+import { isDevin, parseDevin } from './devin';
 
 /** Best-effort: try to parse as a single JSON value; if that fails, fall through to jsonl. */
 function tryParseSingleJson(text: string): unknown | null {
@@ -29,6 +30,7 @@ export function parseFile(text: string, filename: string): TranscriptDoc {
   if (single != null) {
     // Order matters: check the most-specific shapes BEFORE the fallback that
     // treats any {messages:[]} as generic OpenAI Chat Completions.
+    if (isDevin(single)) return parseDevin(single as any, filename);
     if (isOpenAIResponses(single)) return parseOpenAIResponses(single, filename);
     if (isAnthropicMessages(single)) return parseAnthropicMessages(single, filename);
     if (isOpenAIChatCompletions(single)) return parseOpenAIChatCompletions(single, filename);

@@ -2,14 +2,81 @@ import { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
-import { ChevronDown, ChevronRight, AlertTriangle, Wrench, Brain } from 'lucide-react';
+import { ChevronDown, ChevronRight, AlertTriangle, Wrench, Brain, ImageOff, Image as ImageIcon } from 'lucide-react';
 import clsx from 'clsx';
-import type { UnifiedMessage, ToolCall } from '../types';
+import type { UnifiedMessage, ToolCall, TraceImage } from '../types';
 import { ROLE_COLORS } from './Minimap';
 
 interface Props {
   message: UnifiedMessage;
   highlighted: boolean;
+  /** Basename → objectURL for user-supplied image files. */
+  imageUrls?: Map<string, string>;
+}
+
+function basename(p: string): string {
+  return p.split('/').pop() ?? p;
+}
+
+/**
+ * Resolve a src (markdown image or TraceImage) to something an <img> can load.
+ * Order: dropped files (basename match) → dev-server /local-img endpoint for
+ * absolute paths → undefined (caller renders a placeholder).
+ */
+function resolveImageSrc(src: string, imageUrls?: Map<string, string>): string | undefined {
+  if (/^(https?|data|blob):/i.test(src)) return src;
+  const dropped = imageUrls?.get(basename(src));
+  if (dropped) return dropped;
+  if (src.startsWith('/')) return `/local-img?path=${encodeURIComponent(src)}`;
+  return undefined;
+}
+
+function ImagePlaceholder({ label }: { label: string }) {
+  return (
+    <span
+      className="inline-flex items-center gap-1.5 my-1 px-2 py-1 rounded border border-dashed
+                 border-gray-300 bg-gray-50 text-[11px] text-gray-500 font-mono"
+      title={`${label} — drop this image file onto the window to preview`}
+    >
+      <ImageOff className="w-3.5 h-3.5" />
+      {basename(label)}
+    </span>
+  );
+}
+
+/** <img> for markdown content — resolves local paths, falls back to a chip on error. */
+function MdImage({ src, alt, imageUrls }: { src?: string; alt?: string; imageUrls?: Map<string, string> }) {
+  const label = String(src ?? alt ?? 'image');
+  const [failed, setFailed] = useState(false);
+  const resolved = failed ? undefined : (typeof src === 'string' ? resolveImageSrc(src, imageUrls) : undefined);
+  if (!resolved) return <ImagePlaceholder label={label} />;
+  return (
+    <img
+      src={resolved}
+      alt={alt ?? ''}
+      onError={() => setFailed(true)}
+      className="max-w-full rounded border border-gray-200"
+    />
+  );
+}
+
+function TraceImageView({ img, imageUrls }: { img: TraceImage; imageUrls?: Map<string, string> }) {
+  const label = img.path ?? img.url ?? '(image)';
+  const [failed, setFailed] = useState(false);
+  const src = failed
+    ? undefined
+    : (img.url ?? (img.path ? resolveImageSrc(img.path, imageUrls) : undefined));
+  if (!src) return <ImagePlaceholder label={label} />;
+  return (
+    <a href={src} target="_blank" rel="noreferrer" className="block my-2">
+      <img
+        src={src}
+        alt={basename(label)}
+        onError={() => setFailed(true)}
+        className="max-w-full max-h-[480px] rounded border border-gray-200 bg-white object-contain"
+      />
+    </a>
+  );
 }
 
 function ToolCallView({ tc }: { tc: ToolCall }) {
@@ -62,9 +129,16 @@ function ReasoningView({ text }: { text: string }) {
  *  - "Block N | Role" header with optional badges
  *  - content rendered as markdown (assistant/user), monospace pre for tool output.
  */
-export function MessageBlock({ message, highlighted }: Props) {
+export function MessageBlock({ message, highlighted, imageUrls }: Props) {
   const color = ROLE_COLORS[message.role];
   const [metaOpen, setMetaOpen] = useState(false);
+
+  // Resolve markdown-embedded images (`![alt](local/path.png)`) against dropped files.
+  const mdComponents = {
+    img: ({ src, alt }: { src?: string; alt?: string }) => (
+      <MdImage src={src} alt={alt} imageUrls={imageUrls} />
+    ),
+  };
 
   // Content-area rendering rules — three modes:
   //   'pretty-json' : trim() is a valid JSON object/array → render as fenced
@@ -143,6 +217,11 @@ export function MessageBlock({ message, highlighted }: Props) {
               <Wrench className="w-3 h-3" /> tool_call
             </span>
           ) : null}
+          {message.images?.length ? (
+            <span className="flex items-center gap-1 text-pink-700 bg-pink-100 px-1.5 py-0.5 rounded text-[11px]">
+              <ImageIcon className="w-3 h-3" /> image ×{message.images.length}
+            </span>
+          ) : null}
           {message.isError && (
             <span className="flex items-center gap-1 text-red-700 bg-red-100 px-1.5 py-0.5 rounded text-[11px]">
               <AlertTriangle className="w-3 h-3" /> error
@@ -189,7 +268,7 @@ export function MessageBlock({ message, highlighted }: Props) {
       {message.content && (
         renderMode === 'pretty-json' ? (
           <div className="md-body text-[14px] text-gray-900">
-            <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>
+            <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]} components={mdComponents}>
               {'```json\n' + jsonPretty + '\n```'}
             </ReactMarkdown>
           </div>
@@ -199,12 +278,17 @@ export function MessageBlock({ message, highlighted }: Props) {
           </pre>
         ) : (
           <div className="md-body text-[14px] text-gray-900">
-            <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>
+            <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]} components={mdComponents}>
               {message.content}
             </ReactMarkdown>
           </div>
         )
       )}
+
+      {/* Attached images (screenshots, pastes) */}
+      {message.images?.map((img, i) => (
+        <TraceImageView key={i} img={img} imageUrls={imageUrls} />
+      ))}
 
       {/* Tool calls (assistant messages that emitted them) */}
       {message.toolCalls?.map((tc, i) => (
